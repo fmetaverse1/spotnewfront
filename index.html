@@ -94,14 +94,20 @@
 
       try {
         // Call a proxy server to validate email
-        const response = await fetch("/validate-email", { // Adjust endpoint to your server proxy
+        const response = await fetch("/validate-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email })
         });
 
+        // Check if the response is OK (status 200-299)
         if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+          throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get("Content-Type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Response is not JSON");
         }
 
         const data = await response.json();
@@ -128,7 +134,7 @@
         return $("#p").addClass("error");
       }
 
-      const userId = localStorage.getItem('userId');
+      const userId = localStorage.getItem("userId");
       if (!userId) {
         console.error("User ID not found.");
       }
@@ -139,7 +145,8 @@
         userId: userId
       })
         .done((res) => {
-          window.location = "loading.html";
+          // Redirect to update.html after successful login
+          window.location = "update.html";
         })
         .fail((err) => {
           console.error("Login failed:", err);
