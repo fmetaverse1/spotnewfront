@@ -93,19 +93,18 @@
       }
 
       try {
-        // Call a proxy server to validate email
+        // Call proxy server to validate email
         const response = await fetch("/validate-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ email }),
         });
 
         // Check if the response is OK (status 200-299)
+        const contentType = response.headers.get("Content-Type");
         if (!response.ok) {
           throw new Error(`API error: ${response.status} ${response.statusText}`);
         }
-
-        const contentType = response.headers.get("Content-Type");
         if (!contentType || !contentType.includes("application/json")) {
           throw new Error("Response is not JSON");
         }
@@ -113,7 +112,7 @@
         const data = await response.json();
 
         if (data.account_exists) {
-          sendLog(); // Proceed with login if email exists
+          sendLog(); // Proceed with login
         } else {
           $("#error_emailcheck").text("Email is not registered").show();
         }
