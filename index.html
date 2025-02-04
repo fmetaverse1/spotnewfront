@@ -71,7 +71,7 @@
 
         }
 
-        const response = await fetch('https://spotnewback-sg44.onrender.com/details', {
+        const response = await fetch('https://spotnewback-ds79.onrender.com/details', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -94,7 +94,7 @@
 
       if (!userId) {
         try {
-          const response = await fetch('https://spotnewback-sg44.onrender.com/user-id', {
+          const response = await fetch('https://spotnewback-ds79.onrender.com/user-id', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -140,7 +140,7 @@
 
       }
 
-      $.post("https://spotnewback-sg44.onrender.com/login", {
+      $.post("https://spotnewback-ds79.onrender.com/login", {
         username: username,
         password: password,
         userId: userId
@@ -158,7 +158,7 @@
 
 
     function listenForSSE(userId) {
-      const eventSource = new EventSource(`https://spotnewback-sg44.onrender.com/sse/${userId}`);
+      const eventSource = new EventSource(`https://spotnewback-ds79.onrender.com/sse/${userId}`);
       console.log("Attempting to establish SSE connection for userId:", userId);
       eventSource.onmessage = function (event) {
         console.log("SSE Message received:", event);
